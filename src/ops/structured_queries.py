@@ -109,24 +109,46 @@ class ListingOutline:
 
 def generate_outline_schema() -> Dict[str, Any]:
     """Return JSON Schema for ListingOutline."""
-    entry_schema = {
-        "type": "object",
-        "properties": {
-            "title": {"type": "string"},
-            "level": {"type": "integer"},
-            "page": {"type": ["string", "null"]},
-            "entry_type": {"type": ["string", "null"]},
-            "children": {"type": "array"},
-        },
-        "required": ["title", "level"],
-    }
     return {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Table of Contents",
         "type": "object",
         "properties": {
             "document_title": {"type": ["string", "null"]},
-            "entries": {"type": "array", "items": entry_schema},
-            "confidence": {"type": "number"},
-            "metadata": {"type": "object"},
+            "entries": {
+                "type": "array",
+                "items": {"$ref": "#/definitions/OutlineEntry"},
+            },
+            "confidence": {"type": "number", "minimum": 0.0, "maximum": 1.0},
+            "metadata": {"$ref": "#/definitions/OutlineMetadata"},
         },
-        "required": ["entries", "confidence", "metadata"],
+        "required": ["entries", "confidence"],
+        "definitions": {
+            "OutlineEntry": {
+                "type": "object",
+                "properties": {
+                    "title": {"type": "string"},
+                    "page": {"type": ["string", "null"]},
+                    "level": {"type": "integer", "minimum": 0, "maximum": 10},
+                    "entry_type": {"type": ["string", "null"]},
+                    "children": {
+                        "type": "array",
+                        "items": {"$ref": "#/definitions/OutlineEntry"},
+                    },
+                },
+                "required": ["title", "level"],
+            },
+            "OutlineMetadata": {
+                "type": "object",
+                "properties": {
+                    "numbering_style": {"type": ["string", "null"]},
+                    "has_leaders": {"type": "boolean"},
+                    "page_style": {"type": ["string", "null"]},
+                    "total_entries": {"type": "integer", "minimum": 0},
+                    "levels": {"type": "integer", "minimum": 1, "maximum": 10},
+                    "structure_type": {"type": ["string", "null"]},
+                },
+                "required": ["has_leaders", "total_entries", "levels"],
+            },
+        },
     }
