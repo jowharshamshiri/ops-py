@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ops"
-version = "0.3.4693"
+version = "{{ project.version }}"
 description = "A Python ops framework with composable wrappers and batch execution"
 authors = [{name = "https://github.com/jowharshamshiri"}]
 license = {text = "MIT"}
