@@ -6,7 +6,7 @@
 
 **Unnumbered Tests:** 0
 
-**Numbered Tests Missing Descriptions:** 2
+**Numbered Tests Missing Descriptions:** 0
 
 **Numbering Mismatches:** 0
 
@@ -95,9 +95,9 @@ This catalog lists all tests in the Python codebase.
 | test077 | `test_077_dry_put_and_get` | TEST077: Use dry_put! and dry_get! macros to store and retrieve a typed value by variable name dry_put!(dry, value) == dry.insert("value", value) dry_get!(dry, value) == dry.get("value") | tests/test_macros.py:21 |
 | test078 | `test_078_dry_require` | TEST078: Use dry_require! macro to retrieve a required value and verify error when key is missing dry_require!(dry, name) == dry.get_required("name") | tests/test_macros.py:33 |
 | test079 | `test_079_dry_result` | TEST079: Use dry_result! macro to store a final result and verify it is stored under both "result" and op name dry_result!(dry, "TestOp", value) == dry.insert("result", value); dry.insert("TestOp", value) | tests/test_macros.py:49 |
-| test080 | `test_080_wet_put_ref_and_require_ref` |  | tests/test_macros.py:74 |
-| test081 | `test_081_wet_put_arc` | TEST081: Use wet_put_arc! to store an Arc-wrapped service and retrieve it via wet_require_ref! In Python there is no Arc — insert_arc is an alias for insert_ref | tests/test_macros.py:86 |
-| test082 | `test_082_macros_in_op` |  | tests/test_macros.py:113 |
+| test080 | `test_080_wet_put_ref_and_require_ref` | TEST080: Wet put ref and require ref | tests/test_macros.py:75 |
+| test081 | `test_081_wet_put_arc` | TEST081: Use wet_put_arc! to store an Arc-wrapped service and retrieve it via wet_require_ref! In Python there is no Arc — insert_arc is an alias for insert_ref | tests/test_macros.py:87 |
+| test082 | `test_082_macros_in_op` | TEST082: Macros in op | tests/test_macros.py:115 |
 | test083 | `test_083_error_handling_and_wrapper_chains` | TEST083: Compose timeout and logging wrappers around a failing op and verify the error message includes the op name | tests/test_integration.py:99 |
 | test084 | `test_084_stack_trace_analysis` | TEST084: Call get_caller_trigger_name from within a test and verify it reflects the integration test module path | tests/test_integration.py:115 |
 | test085 | `test_085_exception_wrapping_utilities` | TEST085: Use wrap_nested_op_exception and verify the wrapped error contains both op name and original message | tests/test_integration.py:122 |
@@ -131,18 +131,9 @@ This catalog lists all tests in the Python codebase.
 | test115 | `test_115_loop_op_with_no_ops_produces_no_results` | TEST115: Run an empty LoopOp with a non-zero limit and verify it produces no results | tests/test_loop_op.py:336 |
 ---
 
-## Numbered Tests Missing Descriptions
-
-These tests still participate in numeric indexing, but the cataloger did not find an authoritative immediate comment/docstring description for them. This is reported explicitly so intentional blank-description parity and accidental comment drift are both visible.
-
-- `test080` / `test_080_wet_put_ref_and_require_ref` — tests/test_macros.py:74
-- `test082` / `test_082_macros_in_op` — tests/test_macros.py:113
-
----
-
 *Generated from Python source tree*
 *Total tests: 113*
 *Total numbered tests: 113*
 *Total unnumbered tests: 0*
-*Total numbered tests missing descriptions: 2*
+*Total numbered tests missing descriptions: 0*
 *Total numbering mismatches: 0*
