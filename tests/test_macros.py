@@ -71,6 +71,7 @@ class _TestService:
         self.value = value
 
 
+# TEST080: Wet put ref and require ref
 def test_080_wet_put_ref_and_require_ref():
     wet = WetContext()
 
@@ -109,6 +110,7 @@ class _MacroTestOp(Op):
         return OpMetadata.builder("MacroTestOp").description("Tests macro usage in ops").build()
 
 
+# TEST082: Macros in op
 @pytest.mark.asyncio
 async def test_082_macros_in_op():
     # Prepare contexts
