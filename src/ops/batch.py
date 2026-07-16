@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Generic, List, TypeVar
 
-from ops.error import AbortedError, BatchFailedError, OpError
+from ops.error import AbortedError, BatchFailedError, OpError, WrappedClassifiedError
 from ops.op import Op
 from ops.op_metadata import OpMetadata
 from ops.contexts import DryContext, WetContext
@@ -70,9 +70,15 @@ class BatchOp(Op[List[T]], Generic[T]):
                     errors.append((index, e))
                 else:
                     await self._rollback_succeeded_ops(succeeded_ops, dry, wet)
-                    raise BatchFailedError(
-                        f"Op {index}-{op.metadata().name} failed: {e}"
-                    )
+                    # A classified child failure keeps its declared identity
+                    # through the batch wrap (docs/failure-taxonomy.md) —
+                    # the wrap enriches the human chain only.
+                    chain = f"Op {index}-{op.metadata().name} failed: {e}"
+                    if isinstance(e, OpError) and e.failure_code() is not None:
+                        raise WrappedClassifiedError(
+                            chain, e.failure_code(), e.failure_class(), e.failure_reason()
+                        )
+                    raise BatchFailedError(chain)
 
         return results
 

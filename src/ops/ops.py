@@ -11,6 +11,8 @@ from ops.error import (
     TimeoutError,
     ContextError,
     BatchFailedError,
+    ClassifiedError,
+    WrappedClassifiedError,
     AbortedError,
     TriggerError,
     OtherError,
@@ -58,6 +60,19 @@ def wrap_nested_op_exception(trigger_name: str, error: OpError) -> OpError:
         return ContextError(f"Op '{trigger_name}' context error: {error.message}")
     if isinstance(error, BatchFailedError):
         return BatchFailedError(f"Batch op '{trigger_name}' failed: {error.message}")
+    # Classified failures keep their identity through wrapping — the wrap
+    # adds human context to the CHAIN, never touches class/code/reason
+    # (docs/failure-taxonomy.md).
+    if isinstance(error, WrappedClassifiedError):
+        return WrappedClassifiedError(
+            f"Batch op '{trigger_name}' failed: {error.chain}",
+            error.code, error.klass, error.reason,
+        )
+    if isinstance(error, ClassifiedError):
+        return WrappedClassifiedError(
+            f"Op '{trigger_name}' failed: {error.code}: {error.message}",
+            error.code, error.klass, error.message,
+        )
     if isinstance(error, AbortedError):
         return AbortedError(f"Op '{trigger_name}' aborted: {error.reason}")
     if isinstance(error, TriggerError):

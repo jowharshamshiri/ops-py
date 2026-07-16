@@ -78,3 +78,72 @@ def test_111_op_error_from_json_error():
         op_err = op_error_from_json_error(json_err)
         assert isinstance(op_err, OtherError)
         assert isinstance(op_err, OpError)
+
+
+# TEST1730: the wire vocabulary round-trips exactly and rejects unknowns.
+# (mirrors Rust ops/src/failure.rs TEST1730)
+def test_1730_failure_class_wire_tokens_round_trip():
+    from ops.error import FailureClass
+
+    for klass in FailureClass:
+        assert FailureClass.from_wire(klass.value) is klass
+    assert FailureClass.from_wire("user-error") is None
+    assert FailureClass.from_wire("") is None
+
+
+# TEST1731: only INPUT is permanent — the retry machinery keys on this.
+# (mirrors Rust ops/src/failure.rs TEST1731)
+def test_1731_only_input_is_permanent():
+    from ops.error import FailureClass
+
+    assert FailureClass.INPUT.is_permanent()
+    for klass in (FailureClass.RESOURCE, FailureClass.ENVIRONMENT, FailureClass.INTERNAL):
+        assert not klass.is_permanent()
+
+
+# TEST1901: classified variants carry the emit source's identity through the
+# accessors; unclassified variants are INTERNAL with no code — the taxonomy's
+# own rule (docs/failure-taxonomy.md). (mirrors Rust ops/src/error.rs TEST1901)
+def test_1901_classified_accessors():
+    from ops.error import ClassifiedError, ExecutionFailedError, FailureClass, WrappedClassifiedError
+
+    classified = ClassifiedError("CONTEXT_OVERFLOW", FailureClass.INPUT, "prompt too large")
+    assert classified.failure_class() is FailureClass.INPUT
+    assert classified.failure_code() == "CONTEXT_OVERFLOW"
+    assert classified.failure_reason() == "prompt too large"
+    assert str(classified) == "CONTEXT_OVERFLOW: prompt too large"
+
+    wrapped = WrappedClassifiedError(
+        "Op 3-generate failed: CONTEXT_OVERFLOW: prompt too large",
+        "CONTEXT_OVERFLOW", FailureClass.INPUT, "prompt too large",
+    )
+    assert wrapped.failure_reason() == "prompt too large", "reason is the LEAF, not the chain"
+    assert str(wrapped) == "Op 3-generate failed: CONTEXT_OVERFLOW: prompt too large"
+
+    plain = ExecutionFailedError("boom")
+    assert plain.failure_class() is FailureClass.INTERNAL
+    assert plain.failure_code() is None
+
+
+# TEST1903: wrapping preserves a classified failure's identity — the wrap
+# enriches the human CHAIN only, never the class/code/reason
+# (docs/failure-taxonomy.md). (mirrors Rust ops/src/ops.rs TEST1903)
+def test_1903_wrap_preserves_classification():
+    from ops.error import ClassifiedError, FailureClass, WrappedClassifiedError
+    from ops.ops import wrap_nested_op_exception
+
+    wrapped = wrap_nested_op_exception(
+        "GenerateOp", ClassifiedError("CONTEXT_OVERFLOW", FailureClass.INPUT, "prompt too large")
+    )
+    assert isinstance(wrapped, WrappedClassifiedError)
+    assert "GenerateOp" in wrapped.chain
+    assert wrapped.failure_code() == "CONTEXT_OVERFLOW"
+    assert wrapped.failure_class() is FailureClass.INPUT
+    assert wrapped.failure_reason() == "prompt too large"
+
+    rewrapped = wrap_nested_op_exception("OuterBatch", wrapped)
+    assert isinstance(rewrapped, WrappedClassifiedError)
+    assert "OuterBatch" in rewrapped.chain and "GenerateOp" in rewrapped.chain
+    assert rewrapped.failure_code() == "CONTEXT_OVERFLOW"
+    assert rewrapped.failure_class() is FailureClass.INPUT
+    assert rewrapped.failure_reason() == "prompt too large"

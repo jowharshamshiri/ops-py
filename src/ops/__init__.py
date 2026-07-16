@@ -1,11 +1,14 @@
 """ops — Python ops framework with composable wrappers and batch execution."""
 
 from ops.error import (
+    FailureClass,
     OpError,
     ExecutionFailedError,
     TimeoutError,
     ContextError,
     BatchFailedError,
+    ClassifiedError,
+    WrappedClassifiedError,
     AbortedError,
     TriggerError,
     OtherError,
@@ -35,11 +38,14 @@ from ops.trigger import Trigger, TriggerRegistry, TriggerEngine
 
 __all__ = [
     # errors
+    "FailureClass",
     "OpError",
     "ExecutionFailedError",
     "TimeoutError",
     "ContextError",
     "BatchFailedError",
+    "ClassifiedError",
+    "WrappedClassifiedError",
     "AbortedError",
     "TriggerError",
     "OtherError",

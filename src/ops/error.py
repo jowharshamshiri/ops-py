@@ -4,11 +4,63 @@ Mirrors Rust's OpError enum with Python exception hierarchy.
 """
 
 import copy
+from enum import Enum
+from typing import Optional
+
+
+class FailureClass(str, Enum):
+    """The failure taxonomy — WHOSE problem a failure is
+    (docs/failure-taxonomy.md, mirrors Rust ops::FailureClass).
+
+    Declared at the error's DEFINITION site and carried structurally through
+    every hop; no layer ever infers another layer's class from message text.
+    An error that reaches a boundary without a declared class is INTERNAL —
+    unclassified means "ours", never a guess.
+
+    The value is the stable lowercase wire token — used in the ERR frame
+    meta, the machine_runs columns, the gRPC proto, and the loom.
+    """
+    INPUT = "input"  # Deterministic on the INPUT. Never retryable.
+    RESOURCE = "resource"  # A compute resource was exhausted. Retryable.
+    ENVIRONMENT = "environment"  # The environment failed. Retryable.
+    INTERNAL = "internal"  # Everything else: ours.
+
+    @classmethod
+    def from_wire(cls, token: str) -> Optional["FailureClass"]:
+        """Parse a wire token, returning None for anything else (matches
+        Rust FailureClass::from_wire). Unknown tokens are a PROTOCOL error,
+        not a fallback case — receivers treat missing/unknown as INTERNAL."""
+        try:
+            return cls(token)
+        except ValueError:
+            return None
+
+    def is_permanent(self) -> bool:
+        """Whether retrying can NEVER succeed: the failure is a deterministic
+        function of the input. Resource/environment/internal stay retryable."""
+        return self is FailureClass.INPUT
 
 
 class OpError(Exception):
     """Base class for all ops errors."""
-    pass
+
+    def failure_class(self) -> FailureClass:
+        """The failure class this error DECLARES. Classified variants carry
+        their origin's declaration; everything else is INTERNAL —
+        unclassified means "ours", never a guess (docs/failure-taxonomy.md).
+        (matches Rust OpError::failure_class)"""
+        return FailureClass.INTERNAL
+
+    def failure_code(self) -> Optional[str]:
+        """The machine-readable code declared at the emit source, when the
+        failure carried one. (matches Rust OpError::failure_code)"""
+        return None
+
+    def failure_reason(self) -> str:
+        """The LEAF human reason — the origin's own message for classified
+        failures, the exception text otherwise.
+        (matches Rust OpError::failure_reason)"""
+        return str(self)
 
 
 class ExecutionFailedError(OpError):
@@ -93,6 +145,66 @@ class TriggerError(OpError):
 
     def __copy__(self) -> "TriggerError":
         return TriggerError(self.message)
+
+
+class ClassifiedError(OpError):
+    """A failure carrying its FULL identity from the emit source: the
+    machine-readable code the origin error declares, the failure class it
+    declares (whose problem it is), and the leaf human message. Wrapping
+    layers construct WrappedClassifiedError from classified origins instead
+    of folding everything into prose; the engine's run record and retry
+    policy read it structurally. (matches Rust OpError::Classified)"""
+
+    def __init__(self, code: str, klass: FailureClass, message: str):
+        self.code = code
+        self.klass = klass
+        self.message = message
+        super().__init__(str(self))
+
+    def __str__(self) -> str:
+        return f"{self.code}: {self.message}"
+
+    def __copy__(self) -> "ClassifiedError":
+        return ClassifiedError(self.code, self.klass, self.message)
+
+    def failure_class(self) -> FailureClass:
+        return self.klass
+
+    def failure_code(self) -> Optional[str]:
+        return self.code
+
+    def failure_reason(self) -> str:
+        return self.message
+
+
+class WrappedClassifiedError(OpError):
+    """A CLASSIFIED failure inside wrapping context (a batch child, a
+    trigger-wrapped op, …) — the wrapper preserves the origin's failure
+    identity instead of flattening it into prose. `chain` is the wrapping
+    text (which op, which index) for humans; code/klass/reason are the
+    origin's, verbatim. (matches Rust OpError::WrappedClassified)"""
+
+    def __init__(self, chain: str, code: str, klass: FailureClass, reason: str):
+        self.chain = chain
+        self.code = code
+        self.klass = klass
+        self.reason = reason
+        super().__init__(str(self))
+
+    def __str__(self) -> str:
+        return self.chain
+
+    def __copy__(self) -> "WrappedClassifiedError":
+        return WrappedClassifiedError(self.chain, self.code, self.klass, self.reason)
+
+    def failure_class(self) -> FailureClass:
+        return self.klass
+
+    def failure_code(self) -> Optional[str]:
+        return self.code
+
+    def failure_reason(self) -> str:
+        return self.reason
 
 
 class OtherError(OpError):
