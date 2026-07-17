@@ -1,8 +1,8 @@
 # Python Test Catalog
 
-**Total Tests:** 113
+**Total Tests:** 117
 
-**Numbered Tests:** 113
+**Numbered Tests:** 117
 
 **Unnumbered Tests:** 0
 
@@ -129,11 +129,15 @@ This catalog lists all tests in the Python codebase.
 | test113 | `test_113_loop_op_break_terminates_loop` | TEST113: Run a LoopOp where an op sets the break flag and verify the loop terminates early | tests/test_loop_op.py:274 |
 | test114 | `test_114_loop_op_continue_on_error_skips_failed_iterations` | TEST114: Run LoopOp.with_continue_on_error where an op fails and verify the loop continues | tests/test_loop_op.py:304 |
 | test115 | `test_115_loop_op_with_no_ops_produces_no_results` | TEST115: Run an empty LoopOp with a non-zero limit and verify it produces no results | tests/test_loop_op.py:336 |
+| test1730 | `test_1730_failure_class_wire_tokens_round_trip` | TEST1730: the wire vocabulary round-trips exactly and rejects unknowns. (mirrors Rust ops/src/failure.rs TEST1730) | tests/test_error.py:85 |
+| test1731 | `test_1731_only_input_is_permanent` | TEST1731: only INPUT is permanent — the retry machinery keys on this. (mirrors Rust ops/src/failure.rs TEST1731) | tests/test_error.py:96 |
+| test1901 | `test_1901_classified_accessors` | TEST1901: classified variants carry the emit source's identity through the accessors; unclassified variants are INTERNAL with no code — the taxonomy's own rule (docs/failure-taxonomy.md). (mirrors Rust ops/src/error.rs TEST1901) | tests/test_error.py:107 |
+| test1903 | `test_1903_wrap_preserves_classification` | TEST1903: wrapping preserves a classified failure's identity — the wrap enriches the human CHAIN only, never the class/code/reason (docs/failure-taxonomy.md). (mirrors Rust ops/src/ops.rs TEST1903) | tests/test_error.py:131 |
 ---
 
 *Generated from Python source tree*
-*Total tests: 113*
-*Total numbered tests: 113*
+*Total tests: 117*
+*Total numbered tests: 117*
 *Total unnumbered tests: 0*
 *Total numbered tests missing descriptions: 0*
 *Total numbering mismatches: 0*
