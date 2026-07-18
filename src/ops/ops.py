@@ -66,12 +66,12 @@ def wrap_nested_op_exception(trigger_name: str, error: OpError) -> OpError:
     if isinstance(error, WrappedClassifiedError):
         return WrappedClassifiedError(
             f"Batch op '{trigger_name}' failed: {error.chain}",
-            error.code, error.klass, error.reason,
+            error.code, error.klass, error.reason, error.arg_urn,
         )
     if isinstance(error, ClassifiedError):
         return WrappedClassifiedError(
             f"Op '{trigger_name}' failed: {error.code}: {error.message}",
-            error.code, error.klass, error.message,
+            error.code, error.klass, error.message, error.arg_urn,
         )
     if isinstance(error, AbortedError):
         return AbortedError(f"Op '{trigger_name}' aborted: {error.reason}")

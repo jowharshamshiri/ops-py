@@ -107,10 +107,14 @@ def test_1731_only_input_is_permanent():
 def test_1901_classified_accessors():
     from ops.error import ClassifiedError, ExecutionFailedError, FailureClass, WrappedClassifiedError
 
-    classified = ClassifiedError("CONTEXT_OVERFLOW", FailureClass.INPUT, "prompt too large")
+    classified = ClassifiedError(
+        "CONTEXT_OVERFLOW", FailureClass.INPUT, "prompt too large",
+        "media:enc=utf-8;prompt",
+    )
     assert classified.failure_class() is FailureClass.INPUT
     assert classified.failure_code() == "CONTEXT_OVERFLOW"
     assert classified.failure_reason() == "prompt too large"
+    assert classified.failure_arg_urn() == "media:enc=utf-8;prompt"
     assert str(classified) == "CONTEXT_OVERFLOW: prompt too large"
 
     wrapped = WrappedClassifiedError(
@@ -118,6 +122,7 @@ def test_1901_classified_accessors():
         "CONTEXT_OVERFLOW", FailureClass.INPUT, "prompt too large",
     )
     assert wrapped.failure_reason() == "prompt too large", "reason is the LEAF, not the chain"
+    assert wrapped.failure_arg_urn() is None
     assert str(wrapped) == "Op 3-generate failed: CONTEXT_OVERFLOW: prompt too large"
 
     plain = ExecutionFailedError("boom")
@@ -133,13 +138,17 @@ def test_1903_wrap_preserves_classification():
     from ops.ops import wrap_nested_op_exception
 
     wrapped = wrap_nested_op_exception(
-        "GenerateOp", ClassifiedError("CONTEXT_OVERFLOW", FailureClass.INPUT, "prompt too large")
+        "GenerateOp", ClassifiedError(
+            "CONTEXT_OVERFLOW", FailureClass.INPUT, "prompt too large",
+            "media:enc=utf-8;prompt",
+        )
     )
     assert isinstance(wrapped, WrappedClassifiedError)
     assert "GenerateOp" in wrapped.chain
     assert wrapped.failure_code() == "CONTEXT_OVERFLOW"
     assert wrapped.failure_class() is FailureClass.INPUT
     assert wrapped.failure_reason() == "prompt too large"
+    assert wrapped.failure_arg_urn() == "media:enc=utf-8;prompt"
 
     rewrapped = wrap_nested_op_exception("OuterBatch", wrapped)
     assert isinstance(rewrapped, WrappedClassifiedError)
@@ -147,3 +156,4 @@ def test_1903_wrap_preserves_classification():
     assert rewrapped.failure_code() == "CONTEXT_OVERFLOW"
     assert rewrapped.failure_class() is FailureClass.INPUT
     assert rewrapped.failure_reason() == "prompt too large"
+    assert rewrapped.failure_arg_urn() == "media:enc=utf-8;prompt"

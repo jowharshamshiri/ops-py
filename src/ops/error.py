@@ -56,6 +56,11 @@ class OpError(Exception):
         failure carried one. (matches Rust OpError::failure_code)"""
         return None
 
+    def failure_arg_urn(self) -> Optional[str]:
+        """The argument attribution declared at the emit source, or None.
+        Wrapping layers preserve it and never infer one."""
+        return None
+
     def failure_reason(self) -> str:
         """The LEAF human reason — the origin's own message for classified
         failures, the exception text otherwise.
@@ -155,23 +160,28 @@ class ClassifiedError(OpError):
     of folding everything into prose; the engine's run record and retry
     policy read it structurally. (matches Rust OpError::Classified)"""
 
-    def __init__(self, code: str, klass: FailureClass, message: str):
+    def __init__(self, code: str, klass: FailureClass, message: str,
+                 arg_urn: Optional[str] = None):
         self.code = code
         self.klass = klass
         self.message = message
+        self.arg_urn = arg_urn
         super().__init__(str(self))
 
     def __str__(self) -> str:
         return f"{self.code}: {self.message}"
 
     def __copy__(self) -> "ClassifiedError":
-        return ClassifiedError(self.code, self.klass, self.message)
+        return ClassifiedError(self.code, self.klass, self.message, self.arg_urn)
 
     def failure_class(self) -> FailureClass:
         return self.klass
 
     def failure_code(self) -> Optional[str]:
         return self.code
+
+    def failure_arg_urn(self) -> Optional[str]:
+        return self.arg_urn
 
     def failure_reason(self) -> str:
         return self.message
@@ -184,24 +194,31 @@ class WrappedClassifiedError(OpError):
     text (which op, which index) for humans; code/klass/reason are the
     origin's, verbatim. (matches Rust OpError::WrappedClassified)"""
 
-    def __init__(self, chain: str, code: str, klass: FailureClass, reason: str):
+    def __init__(self, chain: str, code: str, klass: FailureClass, reason: str,
+                 arg_urn: Optional[str] = None):
         self.chain = chain
         self.code = code
         self.klass = klass
         self.reason = reason
+        self.arg_urn = arg_urn
         super().__init__(str(self))
 
     def __str__(self) -> str:
         return self.chain
 
     def __copy__(self) -> "WrappedClassifiedError":
-        return WrappedClassifiedError(self.chain, self.code, self.klass, self.reason)
+        return WrappedClassifiedError(
+            self.chain, self.code, self.klass, self.reason, self.arg_urn
+        )
 
     def failure_class(self) -> FailureClass:
         return self.klass
 
     def failure_code(self) -> Optional[str]:
         return self.code
+
+    def failure_arg_urn(self) -> Optional[str]:
+        return self.arg_urn
 
     def failure_reason(self) -> str:
         return self.reason
