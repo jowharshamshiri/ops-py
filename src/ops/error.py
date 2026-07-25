@@ -8,9 +8,9 @@ from enum import Enum
 from typing import Optional
 
 
-class FailureClass(str, Enum):
+class AttributionClass(str, Enum):
     """The failure taxonomy — WHOSE problem a failure is
-    (docs/failure-taxonomy.md, mirrors Rust ops::FailureClass).
+    (docs/failure-taxonomy.md, mirrors Rust ops::AttributionClass).
 
     Declared at the error's DEFINITION site and carried structurally through
     every hop; no layer ever infers another layer's class from message text.
@@ -26,9 +26,9 @@ class FailureClass(str, Enum):
     INTERNAL = "internal"  # Everything else: ours.
 
     @classmethod
-    def from_wire(cls, token: str) -> Optional["FailureClass"]:
+    def from_wire(cls, token: str) -> Optional["AttributionClass"]:
         """Parse a wire token, returning None for anything else (matches
-        Rust FailureClass::from_wire). Unknown tokens are a PROTOCOL error,
+        Rust AttributionClass::from_wire). Unknown tokens are a PROTOCOL error,
         not a fallback case — receivers treat missing/unknown as INTERNAL."""
         try:
             return cls(token)
@@ -38,18 +38,18 @@ class FailureClass(str, Enum):
     def is_permanent(self) -> bool:
         """Whether retrying can NEVER succeed: the failure is a deterministic
         function of the input. Resource/environment/internal stay retryable."""
-        return self is FailureClass.INPUT
+        return self is AttributionClass.INPUT
 
 
 class OpError(Exception):
     """Base class for all ops errors."""
 
-    def failure_class(self) -> FailureClass:
+    def attribution_class(self) -> AttributionClass:
         """The failure class this error DECLARES. Classified variants carry
         their origin's declaration; everything else is INTERNAL —
         unclassified means "ours", never a guess (docs/failure-taxonomy.md).
-        (matches Rust OpError::failure_class)"""
-        return FailureClass.INTERNAL
+        (matches Rust OpError::attribution_class)"""
+        return AttributionClass.INTERNAL
 
     def failure_code(self) -> Optional[str]:
         """The machine-readable code declared at the emit source, when the
@@ -160,7 +160,7 @@ class ClassifiedError(OpError):
     of folding everything into prose; the engine's run record and retry
     policy read it structurally. (matches Rust OpError::Classified)"""
 
-    def __init__(self, code: str, klass: FailureClass, message: str,
+    def __init__(self, code: str, klass: AttributionClass, message: str,
                  arg_urn: Optional[str] = None):
         self.code = code
         self.klass = klass
@@ -174,7 +174,7 @@ class ClassifiedError(OpError):
     def __copy__(self) -> "ClassifiedError":
         return ClassifiedError(self.code, self.klass, self.message, self.arg_urn)
 
-    def failure_class(self) -> FailureClass:
+    def attribution_class(self) -> AttributionClass:
         return self.klass
 
     def failure_code(self) -> Optional[str]:
@@ -194,7 +194,7 @@ class WrappedClassifiedError(OpError):
     text (which op, which index) for humans; code/klass/reason are the
     origin's, verbatim. (matches Rust OpError::WrappedClassified)"""
 
-    def __init__(self, chain: str, code: str, klass: FailureClass, reason: str,
+    def __init__(self, chain: str, code: str, klass: AttributionClass, reason: str,
                  arg_urn: Optional[str] = None):
         self.chain = chain
         self.code = code
@@ -211,7 +211,7 @@ class WrappedClassifiedError(OpError):
             self.chain, self.code, self.klass, self.reason, self.arg_urn
         )
 
-    def failure_class(self) -> FailureClass:
+    def attribution_class(self) -> AttributionClass:
         return self.klass
 
     def failure_code(self) -> Optional[str]:

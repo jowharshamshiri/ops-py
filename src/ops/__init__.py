@@ -1,7 +1,7 @@
 """ops — Python ops framework with composable wrappers and batch execution."""
 
 from ops.error import (
-    FailureClass,
+    AttributionClass,
     OpError,
     ExecutionFailedError,
     TimeoutError,
@@ -38,7 +38,7 @@ from ops.trigger import Trigger, TriggerRegistry, TriggerEngine
 
 __all__ = [
     # errors
-    "FailureClass",
+    "AttributionClass",
     "OpError",
     "ExecutionFailedError",
     "TimeoutError",

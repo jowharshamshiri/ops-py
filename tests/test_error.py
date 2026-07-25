@@ -82,22 +82,22 @@ def test_111_op_error_from_json_error():
 
 # TEST1730: the wire vocabulary round-trips exactly and rejects unknowns.
 # (mirrors Rust ops/src/failure.rs TEST1730)
-def test_1730_failure_class_wire_tokens_round_trip():
-    from ops.error import FailureClass
+def test_1730_attribution_class_wire_tokens_round_trip():
+    from ops.error import AttributionClass
 
-    for klass in FailureClass:
-        assert FailureClass.from_wire(klass.value) is klass
-    assert FailureClass.from_wire("user-error") is None
-    assert FailureClass.from_wire("") is None
+    for klass in AttributionClass:
+        assert AttributionClass.from_wire(klass.value) is klass
+    assert AttributionClass.from_wire("user-error") is None
+    assert AttributionClass.from_wire("") is None
 
 
 # TEST1731: only INPUT is permanent — the retry machinery keys on this.
 # (mirrors Rust ops/src/failure.rs TEST1731)
 def test_1731_only_input_is_permanent():
-    from ops.error import FailureClass
+    from ops.error import AttributionClass
 
-    assert FailureClass.INPUT.is_permanent()
-    for klass in (FailureClass.RESOURCE, FailureClass.ENVIRONMENT, FailureClass.INTERNAL):
+    assert AttributionClass.INPUT.is_permanent()
+    for klass in (AttributionClass.RESOURCE, AttributionClass.ENVIRONMENT, AttributionClass.INTERNAL):
         assert not klass.is_permanent()
 
 
@@ -105,13 +105,13 @@ def test_1731_only_input_is_permanent():
 # accessors; unclassified variants are INTERNAL with no code — the taxonomy's
 # own rule (docs/failure-taxonomy.md). (mirrors Rust ops/src/error.rs TEST1901)
 def test_1901_classified_accessors():
-    from ops.error import ClassifiedError, ExecutionFailedError, FailureClass, WrappedClassifiedError
+    from ops.error import ClassifiedError, ExecutionFailedError, AttributionClass, WrappedClassifiedError
 
     classified = ClassifiedError(
-        "CONTEXT_OVERFLOW", FailureClass.INPUT, "prompt too large",
+        "CONTEXT_OVERFLOW", AttributionClass.INPUT, "prompt too large",
         "media:enc=utf-8;prompt",
     )
-    assert classified.failure_class() is FailureClass.INPUT
+    assert classified.attribution_class() is AttributionClass.INPUT
     assert classified.failure_code() == "CONTEXT_OVERFLOW"
     assert classified.failure_reason() == "prompt too large"
     assert classified.failure_arg_urn() == "media:enc=utf-8;prompt"
@@ -119,14 +119,14 @@ def test_1901_classified_accessors():
 
     wrapped = WrappedClassifiedError(
         "Op 3-generate failed: CONTEXT_OVERFLOW: prompt too large",
-        "CONTEXT_OVERFLOW", FailureClass.INPUT, "prompt too large",
+        "CONTEXT_OVERFLOW", AttributionClass.INPUT, "prompt too large",
     )
     assert wrapped.failure_reason() == "prompt too large", "reason is the LEAF, not the chain"
     assert wrapped.failure_arg_urn() is None
     assert str(wrapped) == "Op 3-generate failed: CONTEXT_OVERFLOW: prompt too large"
 
     plain = ExecutionFailedError("boom")
-    assert plain.failure_class() is FailureClass.INTERNAL
+    assert plain.attribution_class() is AttributionClass.INTERNAL
     assert plain.failure_code() is None
 
 
@@ -134,19 +134,19 @@ def test_1901_classified_accessors():
 # enriches the human CHAIN only, never the class/code/reason
 # (docs/failure-taxonomy.md). (mirrors Rust ops/src/ops.rs TEST1903)
 def test_1903_wrap_preserves_classification():
-    from ops.error import ClassifiedError, FailureClass, WrappedClassifiedError
+    from ops.error import ClassifiedError, AttributionClass, WrappedClassifiedError
     from ops.ops import wrap_nested_op_exception
 
     wrapped = wrap_nested_op_exception(
         "GenerateOp", ClassifiedError(
-            "CONTEXT_OVERFLOW", FailureClass.INPUT, "prompt too large",
+            "CONTEXT_OVERFLOW", AttributionClass.INPUT, "prompt too large",
             "media:enc=utf-8;prompt",
         )
     )
     assert isinstance(wrapped, WrappedClassifiedError)
     assert "GenerateOp" in wrapped.chain
     assert wrapped.failure_code() == "CONTEXT_OVERFLOW"
-    assert wrapped.failure_class() is FailureClass.INPUT
+    assert wrapped.attribution_class() is AttributionClass.INPUT
     assert wrapped.failure_reason() == "prompt too large"
     assert wrapped.failure_arg_urn() == "media:enc=utf-8;prompt"
 
@@ -154,6 +154,6 @@ def test_1903_wrap_preserves_classification():
     assert isinstance(rewrapped, WrappedClassifiedError)
     assert "OuterBatch" in rewrapped.chain and "GenerateOp" in rewrapped.chain
     assert rewrapped.failure_code() == "CONTEXT_OVERFLOW"
-    assert rewrapped.failure_class() is FailureClass.INPUT
+    assert rewrapped.attribution_class() is AttributionClass.INPUT
     assert rewrapped.failure_reason() == "prompt too large"
     assert rewrapped.failure_arg_urn() == "media:enc=utf-8;prompt"
