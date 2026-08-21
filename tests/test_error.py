@@ -91,12 +91,14 @@ def test_1730_attribution_class_wire_tokens_round_trip():
     assert AttributionClass.from_wire("") is None
 
 
-# TEST1731: only INPUT is permanent — the retry machinery keys on this.
-# (mirrors Rust ops/src/failure.rs TEST1731)
-def test_1731_only_input_is_permanent():
+# TEST1731: INPUT and USER are permanent — the retry machinery keys on this
+# (a deterministic input failure, or a human's decision, is never retried
+# automatically). (mirrors Rust ops/src/failure.rs TEST1731)
+def test_1731_only_input_and_user_are_permanent():
     from ops.error import AttributionClass
 
     assert AttributionClass.INPUT.is_permanent()
+    assert AttributionClass.USER.is_permanent()
     for klass in (AttributionClass.RESOURCE, AttributionClass.ENVIRONMENT, AttributionClass.INTERNAL):
         assert not klass.is_permanent()
 

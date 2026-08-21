@@ -24,6 +24,7 @@ class AttributionClass(str, Enum):
     RESOURCE = "resource"  # A compute resource was exhausted. Retryable.
     ENVIRONMENT = "environment"  # The environment failed. Retryable.
     INTERNAL = "internal"  # Everything else: ours.
+    USER = "user"  # The user decided it (a cancel). Not a failure; never retried.
 
     @classmethod
     def from_wire(cls, token: str) -> Optional["AttributionClass"]:
@@ -37,8 +38,9 @@ class AttributionClass(str, Enum):
 
     def is_permanent(self) -> bool:
         """Whether retrying can NEVER succeed: the failure is a deterministic
-        function of the input. Resource/environment/internal stay retryable."""
-        return self is AttributionClass.INPUT
+        function of the input, or the user chose to end it.
+        Resource/environment/internal stay retryable."""
+        return self is AttributionClass.INPUT or self is AttributionClass.USER
 
 
 class OpError(Exception):
