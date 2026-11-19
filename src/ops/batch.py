@@ -77,7 +77,8 @@ class BatchOp(Op[List[T]], Generic[T]):
                     if isinstance(e, OpError) and e.failure_code() is not None:
                         raise WrappedClassifiedError(
                             chain, e.failure_code(), e.attribution_class(),
-                            e.failure_reason(), e.failure_arg_urn()
+                            e.failure_reason(), e.failure_arg_urn(),
+                            e.failure_hint()
                         )
                     raise BatchFailedError(chain)
 

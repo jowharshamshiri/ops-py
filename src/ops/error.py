@@ -63,6 +63,12 @@ class OpError(Exception):
         Wrapping layers preserve it and never infer one."""
         return None
 
+    def failure_hint(self) -> Optional[str]:
+        """The next step the emit source declared for the user, through any
+        wrapping, or None when it declared none — never guessed here.
+        (matches Rust OpError::failure_hint)"""
+        return None
+
     def failure_reason(self) -> str:
         """The LEAF human reason — the origin's own message for classified
         failures, the exception text otherwise.
@@ -163,18 +169,21 @@ class ClassifiedError(OpError):
     policy read it structurally. (matches Rust OpError::Classified)"""
 
     def __init__(self, code: str, klass: AttributionClass, message: str,
-                 arg_urn: Optional[str] = None):
+                 arg_urn: Optional[str] = None, hint: Optional[str] = None):
         self.code = code
         self.klass = klass
         self.message = message
         self.arg_urn = arg_urn
+        # The emit source's next step for the user (e.g. the command that
+        # installs what is missing); None means it declared none.
+        self.hint = hint
         super().__init__(str(self))
 
     def __str__(self) -> str:
         return f"{self.code}: {self.message}"
 
     def __copy__(self) -> "ClassifiedError":
-        return ClassifiedError(self.code, self.klass, self.message, self.arg_urn)
+        return ClassifiedError(self.code, self.klass, self.message, self.arg_urn, self.hint)
 
     def attribution_class(self) -> AttributionClass:
         return self.klass
@@ -184,6 +193,9 @@ class ClassifiedError(OpError):
 
     def failure_arg_urn(self) -> Optional[str]:
         return self.arg_urn
+
+    def failure_hint(self) -> Optional[str]:
+        return self.hint
 
     def failure_reason(self) -> str:
         return self.message
@@ -197,12 +209,15 @@ class WrappedClassifiedError(OpError):
     origin's, verbatim. (matches Rust OpError::WrappedClassified)"""
 
     def __init__(self, chain: str, code: str, klass: AttributionClass, reason: str,
-                 arg_urn: Optional[str] = None):
+                 arg_urn: Optional[str] = None, hint: Optional[str] = None):
         self.chain = chain
         self.code = code
         self.klass = klass
         self.reason = reason
         self.arg_urn = arg_urn
+        # The origin's next step for the user, verbatim; never supplied by
+        # a wrapping layer.
+        self.hint = hint
         super().__init__(str(self))
 
     def __str__(self) -> str:
@@ -210,7 +225,7 @@ class WrappedClassifiedError(OpError):
 
     def __copy__(self) -> "WrappedClassifiedError":
         return WrappedClassifiedError(
-            self.chain, self.code, self.klass, self.reason, self.arg_urn
+            self.chain, self.code, self.klass, self.reason, self.arg_urn, self.hint
         )
 
     def attribution_class(self) -> AttributionClass:
@@ -221,6 +236,9 @@ class WrappedClassifiedError(OpError):
 
     def failure_arg_urn(self) -> Optional[str]:
         return self.arg_urn
+
+    def failure_hint(self) -> Optional[str]:
+        return self.hint
 
     def failure_reason(self) -> str:
         return self.reason

@@ -366,3 +366,38 @@ async def test_097_nested_batch_rollback():
 
     with pytest.raises(BatchFailedError):
         await outer_batch.perform(dry, wet)
+
+
+# TEST1905: a batch whose child fails with a classified refusal carries the
+# child's hint through its own wrap, and through an outer batch; a child that
+# declared none gives the batch no hint. (mirrors Rust ops/src/batch.rs TEST1905)
+async def test_1905_batch_carries_child_hint():
+    from ops.error import AttributionClass, ClassifiedError, WrappedClassifiedError
+
+    class RefusingOp(Op):
+        def __init__(self, hint):
+            self.hint = hint
+
+        async def perform(self, dry: DryContext, wet: WetContext) -> int:
+            raise ClassifiedError(
+                "NO_HANDLER", AttributionClass.ENVIRONMENT,
+                "cartridge ggufcartridge is not installed", hint=self.hint,
+            )
+
+        def metadata(self) -> OpMetadata:
+            return OpMetadata.builder("RefusingOp").build()
+
+    outer = BatchOp([BatchOp([RefusingOp("capdag cartridge install ggufcartridge")])])
+    dry = DryContext()
+    wet = WetContext()
+    with pytest.raises(WrappedClassifiedError) as raised:
+        await outer.perform(dry, wet)
+    assert raised.value.failure_code() == "NO_HANDLER"
+    assert raised.value.failure_hint() == "capdag cartridge install ggufcartridge", \
+        "the child's next step survives both batch wraps verbatim"
+
+    with pytest.raises(WrappedClassifiedError) as raised:
+        await BatchOp([RefusingOp(None)]).perform(dry, wet)
+    assert raised.value.failure_code() == "NO_HANDLER"
+    assert raised.value.failure_hint() is None, \
+        "a child that declared no hint gives the batch none"

@@ -1,8 +1,8 @@
 # Python Test Catalog
 
-**Total Tests:** 117
+**Total Tests:** 119
 
-**Numbered Tests:** 117
+**Numbered Tests:** 119
 
 **Unnumbered Tests:** 0
 
@@ -131,13 +131,15 @@ This catalog lists all tests in the Python codebase.
 | test115 | `test_115_loop_op_with_no_ops_produces_no_results` | TEST115: Run an empty LoopOp with a non-zero limit and verify it produces no results | tests/test_loop_op.py:336 |
 | test1730 | `test_1730_attribution_class_wire_tokens_round_trip` | TEST1730: the attribution-class wire vocabulary round-trips exactly and rejects unknowns. (mirrors Rust ops/src/failure.rs TEST1730) | tests/test_error.py:85 |
 | test1731 | `test_1731_only_input_is_permanent` | TEST1731: only INPUT is permanent — the retry machinery keys on this. (mirrors Rust ops/src/failure.rs TEST1731) | tests/test_error.py:96 |
-| test1901 | `test_1901_classified_accessors` | TEST1901: classified variants carry the emit source's identity through the accessors; unclassified variants are INTERNAL with no code — the taxonomy's own rule (docs/failure-taxonomy.md). (mirrors Rust ops/src/error.rs TEST1901) | tests/test_error.py:107 |
-| test1903 | `test_1903_wrap_preserves_classification` | TEST1903: wrapping preserves a classified failure's identity — the wrap enriches the human CHAIN only, never the class/code/reason (docs/failure-taxonomy.md). (mirrors Rust ops/src/ops.rs TEST1903) | tests/test_error.py:131 |
+| test1901 | `test_1901_classified_accessors` | TEST1901: classified variants carry the emit source's identity through the accessors; unclassified variants are INTERNAL with no code — the taxonomy's own rule (docs/failure-taxonomy.md). (mirrors Rust ops/src/error.rs TEST1901) | tests/test_error.py:109 |
+| test1903 | `test_1903_wrap_preserves_classification` | TEST1903: wrapping preserves a classified failure's identity — the wrap enriches the human CHAIN only, never the class/code/reason (docs/failure-taxonomy.md). (mirrors Rust ops/src/ops.rs TEST1903) | tests/test_error.py:141 |
+| test1904 | `test_1904_wrap_carries_hint` | TEST1904: the emit source's hint — its next step for the user — is carried verbatim through wrapping and re-wrapping, and a failure that declared none stays without one: wrapping never supplies a hint. (mirrors Rust ops/src/ops.rs TEST1904) | tests/test_error.py:171 |
+| test1905 | `test_1905_batch_carries_child_hint` | TEST1905: a batch whose child fails with a classified refusal carries the child's hint through its own wrap, and through an outer batch; a child that declared none gives the batch no hint. (mirrors Rust ops/src/batch.rs TEST1905) | tests/test_batch.py:374 |
 ---
 
 *Generated from Python source tree*
-*Total tests: 117*
-*Total numbered tests: 117*
+*Total tests: 119*
+*Total numbered tests: 119*
 *Total unnumbered tests: 0*
 *Total numbered tests missing descriptions: 0*
 *Total numbering mismatches: 0*

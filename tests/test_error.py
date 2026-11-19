@@ -111,12 +111,13 @@ def test_1901_classified_accessors():
 
     classified = ClassifiedError(
         "CONTEXT_OVERFLOW", AttributionClass.INPUT, "prompt too large",
-        "media:enc=utf-8;prompt",
+        "media:enc=utf-8;prompt", "shorten the prompt",
     )
     assert classified.attribution_class() is AttributionClass.INPUT
     assert classified.failure_code() == "CONTEXT_OVERFLOW"
     assert classified.failure_reason() == "prompt too large"
     assert classified.failure_arg_urn() == "media:enc=utf-8;prompt"
+    assert classified.failure_hint() == "shorten the prompt"
     assert str(classified) == "CONTEXT_OVERFLOW: prompt too large"
 
     wrapped = WrappedClassifiedError(
@@ -125,11 +126,13 @@ def test_1901_classified_accessors():
     )
     assert wrapped.failure_reason() == "prompt too large", "reason is the LEAF, not the chain"
     assert wrapped.failure_arg_urn() is None
+    assert wrapped.failure_hint() is None, "no hint declared means none served"
     assert str(wrapped) == "Op 3-generate failed: CONTEXT_OVERFLOW: prompt too large"
 
     plain = ExecutionFailedError("boom")
     assert plain.attribution_class() is AttributionClass.INTERNAL
     assert plain.failure_code() is None
+    assert plain.failure_hint() is None
 
 
 # TEST1903: wrapping preserves a classified failure's identity — the wrap
@@ -159,3 +162,34 @@ def test_1903_wrap_preserves_classification():
     assert rewrapped.attribution_class() is AttributionClass.INPUT
     assert rewrapped.failure_reason() == "prompt too large"
     assert rewrapped.failure_arg_urn() == "media:enc=utf-8;prompt"
+
+
+# TEST1904: the emit source's hint — its next step for the user — is carried
+# verbatim through wrapping and re-wrapping, and a failure that declared none
+# stays without one: wrapping never supplies a hint.
+# (mirrors Rust ops/src/ops.rs TEST1904)
+def test_1904_wrap_carries_hint():
+    from ops.error import ClassifiedError, AttributionClass
+    from ops.ops import wrap_nested_op_exception
+
+    refusal = ClassifiedError(
+        "NO_HANDLER", AttributionClass.ENVIRONMENT,
+        "cartridge ggufcartridge is not installed",
+        hint="capdag cartridge install ggufcartridge",
+    )
+    wrapped = wrap_nested_op_exception("PeerCallOp", refusal)
+    assert wrapped.failure_hint() == "capdag cartridge install ggufcartridge", \
+        "the origin's next step survives wrapping verbatim"
+    rewrapped = wrap_nested_op_exception("SummarizeOp", wrapped)
+    assert "SummarizeOp" in str(rewrapped)
+    assert rewrapped.failure_hint() == "capdag cartridge install ggufcartridge", \
+        "re-wrapping keeps the origin's next step"
+
+    unhinted = ClassifiedError(
+        "NO_HANDLER", AttributionClass.ENVIRONMENT, "no handler for the cap",
+    )
+    rewrapped = wrap_nested_op_exception(
+        "SummarizeOp", wrap_nested_op_exception("PeerCallOp", unhinted)
+    )
+    assert rewrapped.failure_hint() is None, \
+        "no hint declared means none served through any wrapping"
