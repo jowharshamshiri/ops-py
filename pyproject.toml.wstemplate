@@ -20,6 +20,17 @@ dev = [
     "pytest-cov>=4.0",
 ]
 
+[dependency-groups]
+# What dx publish checks and uploads the built artifacts with.
+release = [
+    "twine>=6.0",
+]
+
+[tool.uv]
+# The suite runs against src/ with only the dependencies installed, so uv
+# builds nothing into the source tree.
+package = false
+
 [tool.setuptools.packages.find]
 where = ["src"]
 
